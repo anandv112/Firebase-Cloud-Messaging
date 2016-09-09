@@ -4,12 +4,14 @@ require("config.inc.php");
 	$query = "SELECT * FROM users";
 	
 	$stmt = $db->query($query);
+	
+	$target_path = 'uploads/';
 
 if (!empty($_POST)) {
 
 	$response = array("error" => FALSE);
 	
-	function send_gcm_notify($reg_id, $message) {
+	function send_gcm_notify($reg_id, $message, $img_url, $tag) {
 	
 		define("GOOGLE_API_KEY", "AIzaSyBsGSPuDKtN5KNmxK1zSqonaMMHUmAfeFQ");
 		define("GOOGLE_GCM_URL", "https://fcm.googleapis.com/fcm/send");
@@ -18,17 +20,17 @@ if (!empty($_POST)) {
             
 			'to'  						=> $reg_id ,
 			'priority'					=> "high",
-            'notification'              => array( "title"=>"Android Learning", "body" => $message ),
+            'notification'              => array( "title" => "Android Learning", "body" => $message, "tag" => $tag ),
+			'data'						=> array("message" =>$message, "image"=> $img_url),
         );
-
-		echo "<br>";
-		echo json_encode($fields);
-		echo "<br>";
 		
         $headers = array(
-            'Authorization: key=' . GOOGLE_API_KEY,
-            'Content-Type: application/json'
+			GOOGLE_GCM_URL,
+			'Content-Type: application/json',
+            'Authorization: key=' . GOOGLE_API_KEY 
         );
+		
+		echo "<br>";
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, GOOGLE_GCM_URL);
@@ -49,8 +51,34 @@ if (!empty($_POST)) {
 	
     $reg_id = $_POST['fcm_id'];
     $msg = $_POST['msg'];
+	$img_url = '';
+	$tag = 'text';
+	if ($_FILES['image']['name'] != '') {
 	
-    send_gcm_notify($reg_id, $msg);
+		$tag = 'image';
+		$target_file = $target_path . basename($_FILES['image']['name']);
+		$img_url = 'http://192.168.1.100/fcm_server/'.$target_file;
+			try {
+			// Throws exception incase file is not being moved
+			if (!move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
+				// make error flag true
+				echo json_encode(array('status'=>'fail', 'message'=>'could not move file'));
+			}
+ 
+			// File successfully uploaded
+			echo json_encode(array('status'=>'success', 'message'=> $img_url));
+		} catch (Exception $e) {
+			// Exception occurred. Make error flag true
+			echo json_encode(array('status'=>'fail', 'message'=>$e->getMessage()));
+		}
+		
+		send_gcm_notify($reg_id, $msg, $img_url, $tag);
+		
+	} else {
+		
+		send_gcm_notify($reg_id, $msg, $img_url, $tag);
+		
+	}
 	
 }
 ?>
@@ -62,12 +90,12 @@ if (!empty($_POST)) {
 		<!--Import Google Icon Font-->
 		<link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 		<!--Import materialize.css-->
-		<link type="text/css" rel="stylesheet" href="../css/materialize.min.css"  media="screen,projection"/>
+		<link type="text/css" rel="stylesheet" href="../script/css/materialize.min.css"  media="screen,projection"/>
 	
 		<!--Let browser know website is optimized for mobile-->
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		
-		<title>Admin | Circle Eduventures</title>
+		<title>Admin | FCM Server</title>
 		
 		<style>body, .row{ text-align: center;}</style>
 		
@@ -92,17 +120,27 @@ if (!empty($_POST)) {
 	
 		<h1>Admin Panel</h1>
 		<div class="row">
-		<div class="col s12 m4 l2"><p></p></div>
-			<form class="col s12 m4 l8" action="admin.php" method="post" onsubmit="return checkTextAreaLen()">
+		<div class="col s12 m12 l2"><p></p></div>
+			<form class="col s12 m12 l8" action="admin.php" method="post" enctype="multipart/form-data" onsubmit="return checkTextAreaLen()">
 				<div class="row">
 					<div class="input-field col s12">
-						<p>Select user</p><br><br>
 						<select name="fcm_id" required>
 							<option value="" disabled selected>Select User</option>
 							<?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 								echo "<option value='".$row['fcm_registered_id']."'>".$row['name']." &lt;".$row['email']."&gt;</option>";
 							} ?>
 						</select><br><br>
+                        
+                        <div class="file-field input-field">
+                            <div class="btn">
+                                <span>File</span>
+                                <input type="file" name="image">
+                            </div>
+                            <div class="file-path-wrapper">
+                                <input class="file-path validate" type="text">
+                            </div>
+                        </div>
+                        
 						<textarea id="msg" name="msg" class="materialize-textarea" placeholder="Type your message"></textarea>
 						<br><br>
 		
@@ -110,12 +148,15 @@ if (!empty($_POST)) {
 					</div>
 				</div>
 			</form>
-			<div class="col s12 m4 l2"><p></p></div>
+			<div class="col s12 m12 l2"><p></p></div>
 		</div>
 	
 		<!--Import jQuery before materialize.js-->
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-		<script type="text/javascript" src="../js/materialize.min.js"></script>
+		<script type="text/javascript" src="../script/js/materialize.min.js"></script>
+        <script>
+            $('select').material_select();        
+        </script>
 		
     </body>
 </html>
