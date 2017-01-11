@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -45,11 +44,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // If the application is in the foreground handle both data and notification messages here.
         // Also if you intend on generating your own notifications as a result of a received FCM
         // message, here is where that should be initiated. See sendNotification method below.
-        Log.d(TAG, "From: " + remoteMessage.getFrom());
-        Log.d(TAG, "Notification Message Body: " + remoteMessage.getNotification().getBody());
-        Log.d(TAG, "FCM Data: " + remoteMessage.getData());
 
-        String tag = remoteMessage.getNotification().getTag();
+        String tag = remoteMessage.getData().get("tag");
         String msg = remoteMessage.getData().get("message");
         String img = remoteMessage.getData().get("image");
 
@@ -65,7 +61,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
      * @param messageBody FCM message body received.
      */
     private void sendNotification(String tag, String messageBody, Bitmap img) {
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, HomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_ONE_SHOT);
@@ -75,7 +71,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (tag.equalsIgnoreCase("image")) {
             notificationBuilder = new NotificationCompat.Builder(this)
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("Firebase Cloud Messaging")
+                    .setContentTitle("Android Learning")
                     .setContentText(messageBody)
                     .setStyle(new NotificationCompat.BigPictureStyle()
                           .bigPicture(img))
@@ -85,7 +81,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         } else {
             notificationBuilder = new NotificationCompat.Builder(this)
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("Firebase Cloud Messaging")
+                    .setContentTitle("Android Learning")
                     .setContentText(messageBody)
                     .setAutoCancel(true)
                     .setSound(defaultSoundUri)
